@@ -5,11 +5,14 @@ import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.example.expert.client.WeatherClient;
+import org.example.expert.domain.comment.entity.QComment;
 import org.example.expert.domain.common.dto.AuthUser;
 import org.example.expert.domain.common.exception.InvalidRequestException;
 import org.example.expert.domain.todo.dto.request.TodoSaveRequest;
+import org.example.expert.domain.todo.dto.response.QTodoSearchResponse;
 import org.example.expert.domain.todo.dto.response.TodoResponse;
 import org.example.expert.domain.todo.dto.response.TodoSaveResponse;
+import org.example.expert.domain.todo.dto.response.TodoSearchResponse;
 import org.example.expert.domain.todo.entity.QTodo;
 import org.example.expert.domain.todo.entity.Todo;
 import org.example.expert.domain.todo.repository.TodoRepository;
@@ -103,6 +106,59 @@ public class TodoService {
                 new UserResponse(todoItem.getUser().getId(), todoItem.getUser().getEmail()),
                 todoItem.getCreatedAt(),
                 todoItem.getModifiedAt()
+        ));
+
+    }
+
+    public Page<TodoSearchResponse> searchTodos(int page, int size, String title, LocalDate startDate, LocalDate endDate, String nickname) {
+        Pageable pageable = PageRequest.of(page - 1, size);
+        QTodo todo = QTodo.todo;
+        QUser user = QUser.user;
+        QComment comment = QComment.comment;
+
+        BooleanBuilder builder = new BooleanBuilder();
+
+        if(title != null) {
+            builder.and(todo.title.contains(title));
+        }
+
+        if(startDate != null) {
+            builder.and(todo.modifiedAt.goe(startDate.atStartOfDay()));
+        }
+
+        if(endDate != null) {
+            builder.and(todo.modifiedAt.loe(endDate.atTime(23,59,59)));
+        }
+
+        if(nickname != null) {
+            builder.and(todo.user.nickname.contains(nickname));
+        }
+
+        // 데이터 조회
+        JPAQuery<TodoSearchResponse> query = jpaQueryFactory.select(new QTodoSearchResponse(todo.title, todo.user.count(), todo.comments.size()))
+                .from(todo)
+                .where(builder)
+                .orderBy(todo.createdAt.desc())
+                .groupBy(todo.id);
+
+        // 페이징처리
+        List<TodoSearchResponse> content = query
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .fetch();
+
+        // 전체 데이터 개수
+        long totalSize = Optional.ofNullable(jpaQueryFactory
+                .select(todo.count())
+                .from(todo)
+                .where(builder)
+                .fetchOne()
+        ).orElse(0L);
+
+        return new PageImpl<>(content, pageable, totalSize).map(todoItem -> new TodoSearchResponse(
+                todoItem.getTitle(),
+                todoItem.getUserCount(),
+                todoItem.getCommentCount()
         ));
 
     }
