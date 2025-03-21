@@ -13,7 +13,7 @@ import java.time.LocalDate;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/health")
-public class healthController {
+public class HealthController {
 
     private final S3Service s3Service;
 
