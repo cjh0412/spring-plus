@@ -15,9 +15,10 @@
 - 서버 접속 및 Live 상태를 확인할 수 있는 health check API를 만들고 `README.md` 에 기재하세요.
     - health check API는 누구나 접속 가능해야 해요.
     - API path는 편하게 정해도 괜찮습니다.
+
   
 주소 : http://13.209.45.199:8080/health   
-    - 
+    
 ![running.png](./image/running.png)
 
 #### 12-2. RDS
